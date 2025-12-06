@@ -495,7 +495,7 @@ if st.session_state.assessment_submitted and st.session_state.assessment_results
         import base64
         sig_bytes = uploaded_signature.getvalue()
         sig_b64 = base64.b64encode(sig_bytes).decode()
-    signature_html = f'<img src="data:image/{uploaded_signature.type.split("/")[1]};base64,{sig_b64}" alt="Signature" style="max-height: 60px; max-width: 200px; display: block; margin: 10px auto;">'
+        signature_html = f'<img src="data:image/{uploaded_signature.type.split("/")[1]};base64,{sig_b64}" alt="Signature" style="max-height: 60px; max-width: 200px; display: block; margin: 10px auto;">'
         
     # Professional Certificate-style HTML
     certificate_color = "#008000" if 'Green' in badge else "#d97706" if 'Yellow' in badge else "#dc2626"
@@ -885,4 +885,5 @@ if st.session_state.assessment_submitted and st.session_state.assessment_results
 
 # Footer
 st.markdown("---")
+
 st.markdown("*ZOLARUX Vendor Verification System v2.0 - Enhanced with detailed analytics and recommendations*")
