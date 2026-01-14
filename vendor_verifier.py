@@ -813,7 +813,7 @@ elif st.session_state.current_step == 4:
                     Report generated on {datetime.now().strftime('%B %d, %Y at %I:%M %p')}
                 </p>
                 <p style="font-family: 'Courier New'; color: #666; font-size: 10px; margin-top: 10px;">
-                    Certificate ID: VVS3-{hash(str(vendor_data)) % 100000:05d}
+                    Certificate ID: ZLX-{hash(str(vendor_data)) % 100000:05d}
                 </p>
             </div>
         </div>
@@ -890,3 +890,4 @@ elif st.session_state.current_step == 4:
 # Footer
 st.markdown("---")
 st.markdown("*ZOLARUX Vendor Verification System v3.0 - Built for accuracy and efficiency*")
+
