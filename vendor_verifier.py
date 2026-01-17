@@ -586,7 +586,7 @@ elif st.session_state.current_step == 4:
             
             <div class="vendor">{data['vendor_name']}</div>
             
-            <p style="font-size: 14px; color: #555;">has successfully undergone the <strong>{MODE} VERIFICATION</strong> process.</p>
+            <p style="font-size: 14px; color: #555;">has successfully undergone the <strong>{MODE} WHATSAPP VERIFICATION</strong> process.</p>
             
             <br>
             {score_html}
@@ -618,3 +618,4 @@ elif st.session_state.current_step == 4:
         st.session_state.current_step = 1
         st.session_state.vendor_data = {}
         st.rerun()
+
