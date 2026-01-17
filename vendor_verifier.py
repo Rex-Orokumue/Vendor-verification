@@ -502,12 +502,14 @@ elif st.session_state.current_step == 4:
     logo_html = ""
     if uploaded_logo:
         logo_b64 = base64.b64encode(uploaded_logo.getvalue()).decode()
-        logo_html = f'<img src="data:image/png;base64,{logo_b64}" style="max-height: 60px; margin-bottom: 15px; display: block; margin-left: auto; margin-right: auto;">'
+        # MODIFIED: Added border-radius: 50% and increased max-height to 80px
+        logo_html = f'<img src="data:image/png;base64,{logo_b64}" style="max-height: 80px; border-radius: 50%; margin-bottom: 15px; display: block; margin-left: auto; margin-right: auto;">'
     
     sig_html = ""
     if uploaded_sig:
         sig_b64 = base64.b64encode(uploaded_sig.getvalue()).decode()
-        sig_html = f'<div style="margin-top: 15px; text-align: center;"><img src="data:image/png;base64,{sig_b64}" style="max-height: 50px;"></div>'
+        # MODIFIED: Increased max-height from 50px to 120px
+        sig_html = f'<div style="margin-top: 25px; text-align: center;"><img src="data:image/png;base64,{sig_b64}" style="max-height: 120px; width: auto;"></div>'
 
     # Logic for Certificate Content
     cert_title = "PROVISIONAL VENDOR PASS" if MODE == "INITIAL" else "CERTIFIED VENDOR LICENSE"
@@ -616,5 +618,3 @@ elif st.session_state.current_step == 4:
         st.session_state.current_step = 1
         st.session_state.vendor_data = {}
         st.rerun()
-
-
