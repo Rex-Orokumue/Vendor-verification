@@ -435,7 +435,7 @@ elif st.session_state.current_step == 4:
     
     st.markdown(f'<div class="section-header"><h2>📊 Final Decision: {MODE}</h2></div>', unsafe_allow_html=True)
 
-    # --- RESULTS DASHBOARD (Same as before) ---
+    # --- RESULTS DASHBOARD ---
     scorer = res['scorer'] if MODE == "FULL" else None
     badge = res['badge_info'] if MODE == "FULL" else {'badge': res['badge'], 'color': res['color'], 'status': res['status']}
     
@@ -476,9 +476,10 @@ elif st.session_state.current_step == 4:
         with col_c2:
             uploaded_sig = st.file_uploader("Upload Authorized Signature", type=['png', 'jpg', 'jpeg'], key="cert_sig")
 
-    # --- PDF GENERATOR FUNCTION ---
+    # --- PDF GENERATOR FUNCTION (FIXED) ---
     from fpdf import FPDF
     import tempfile
+    import os  # Added to handle file extensions
 
     def create_pdf(vendor_data, mode, badge_data, score, logo_file, sig_file):
         class PDF(FPDF):
@@ -491,11 +492,19 @@ elif st.session_state.current_step == 4:
         pdf = PDF()
         pdf.add_page()
         
-        # 1. Logo Handling
+        # 1. Logo Handling (FIXED: Dynamic Extension)
         if logo_file:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_logo:
+            # Get the actual extension (.jpg or .png)
+            file_ext = os.path.splitext(logo_file.name)[1].lower()
+            if file_ext not in ['.jpg', '.jpeg', '.png']:
+                file_ext = '.png' # Fallback
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=file_ext) as tmp_logo:
                 tmp_logo.write(logo_file.getvalue())
-                pdf.image(tmp_logo.name, x=10, y=8, h=25)
+                try:
+                    pdf.image(tmp_logo.name, x=10, y=8, h=25)
+                except Exception as e:
+                    st.error(f"Logo Error: {e}")
 
         # 2. Title
         pdf.set_font('Arial', 'B', 24)
@@ -514,6 +523,10 @@ elif st.session_state.current_step == 4:
         pdf.cell(0, 10, "This document certifies that", 0, 1, 'C')
         
         pdf.set_font('Arial', 'B', 30)
+        # Handle long names by shrinking font if needed
+        name_len = len(vendor_data['vendor_name'])
+        if name_len > 20: pdf.set_font('Arial', 'B', 20)
+        
         pdf.cell(0, 20, vendor_data['vendor_name'].upper(), 0, 1, 'C')
         
         pdf.set_font('Arial', '', 12)
@@ -552,15 +565,21 @@ elif st.session_state.current_step == 4:
 
         pdf.ln(10)
         
-        # 6. Signature Area
+        # 6. Signature Area (FIXED: Dynamic Extension)
         pdf.set_draw_color(150, 150, 150)
         pdf.line(60, 250, 150, 250) # Line
         
         if sig_file:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_sig:
+            sig_ext = os.path.splitext(sig_file.name)[1].lower()
+            if sig_ext not in ['.jpg', '.jpeg', '.png']:
+                sig_ext = '.png'
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=sig_ext) as tmp_sig:
                 tmp_sig.write(sig_file.getvalue())
-                # Center signature roughly
-                pdf.image(tmp_sig.name, x=85, y=230, h=20)
+                try:
+                    pdf.image(tmp_sig.name, x=85, y=230, h=20)
+                except Exception as e:
+                    st.error(f"Signature Error: {e}")
                 
         pdf.set_y(255)
         pdf.set_font('Arial', 'I', 10)
@@ -578,11 +597,7 @@ elif st.session_state.current_step == 4:
     col_d1, col_d2 = st.columns(2)
     
     with col_d1:
-        # We need to capture the file buffers before generating PDF
         if st.button("📄 Generate PDF Certificate"):
-            if not uploaded_logo:
-                st.warning("⚠️ For a professional PDF, please upload a logo first.")
-            
             try:
                 pdf_bytes = create_pdf(
                     data, 
@@ -598,7 +613,7 @@ elif st.session_state.current_step == 4:
                 st.success("PDF Generated! Click download below.")
             except Exception as e:
                 st.error(f"Error generating PDF: {e}")
-                st.info("Ensure you have installed fpdf: `pip install fpdf`")
+                st.info("Ensure `fpdf` is in your requirements.txt")
 
     with col_d2:
         if 'pdf_bytes' in st.session_state:
