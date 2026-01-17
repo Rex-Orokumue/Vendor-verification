@@ -509,7 +509,7 @@ elif st.session_state.current_step == 4:
     if uploaded_sig:
         sig_b64 = base64.b64encode(uploaded_sig.getvalue()).decode()
         # MODIFIED: Increased max-height from 50px to 120px
-        sig_html = f'<div style="margin-top: 25px; text-align: center;"><img src="data:image/png;base64,{sig_b64}" style="max-height: 120px; width: auto;"></div>'
+        sig_html = f'<div style="margin-top: 25px; text-align: center;"><img src="data:image/png;base64,{sig_b64}" style="max-height: 160px; width: auto;"></div>'
 
     # Logic for Certificate Content
     cert_title = "PROVISIONAL VENDOR PASS" if MODE == "INITIAL" else "CERTIFIED VENDOR LICENSE"
@@ -618,4 +618,5 @@ elif st.session_state.current_step == 4:
         st.session_state.current_step = 1
         st.session_state.vendor_data = {}
         st.rerun()
+
 
