@@ -490,6 +490,25 @@ elif st.session_state.current_step == 4:
     st.markdown("---")
     st.markdown("### 📥 Download Certificate")
     
+    # 1. Customization Options (Logo & Signature)
+    with st.expander("🎨 Customize Certificate (Logo & Signature)", expanded=True):
+        col_c1, col_c2 = st.columns(2)
+        with col_c1:
+            uploaded_logo = st.file_uploader("Upload Company Logo", type=['png', 'jpg', 'jpeg'], key="cert_logo")
+        with col_c2:
+            uploaded_sig = st.file_uploader("Upload Authorized Signature", type=['png', 'jpg', 'jpeg'], key="cert_sig")
+
+    # Process Images to Base64 for HTML embedding
+    logo_html = ""
+    if uploaded_logo:
+        logo_b64 = base64.b64encode(uploaded_logo.getvalue()).decode()
+        logo_html = f'<img src="data:image/png;base64,{logo_b64}" style="max-height: 60px; margin-bottom: 15px; display: block; margin-left: auto; margin-right: auto;">'
+    
+    sig_html = ""
+    if uploaded_sig:
+        sig_b64 = base64.b64encode(uploaded_sig.getvalue()).decode()
+        sig_html = f'<div style="margin-top: 15px; text-align: center;"><img src="data:image/png;base64,{sig_b64}" style="max-height: 50px;"></div>'
+
     # Logic for Certificate Content
     cert_title = "PROVISIONAL VENDOR PASS" if MODE == "INITIAL" else "CERTIFIED VENDOR LICENSE"
     cert_color = res['color'] if MODE == "INITIAL" else res['badge_info']['color']
@@ -511,30 +530,74 @@ elif st.session_state.current_step == 4:
     <head>
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-            body {{ font-family: 'Inter', sans-serif; padding: 20px; }}
-            .container {{ border: 5px solid {cert_color}; padding: 30px; border-radius: 15px; text-align: center; }}
-            .header {{ background: {cert_color}; color: white; padding: 15px; margin: -30px -30px 20px -30px; }}
-            .vendor {{ font-size: 28px; font-weight: bold; text-transform: uppercase; margin: 20px 0; }}
-            .badge {{ font-size: 24px; color: {cert_color}; font-weight: bold; border: 2px solid {cert_color}; padding: 10px 30px; border-radius: 50px; display: inline-block; }}
-            .footer {{ margin-top: 30px; font-size: 12px; color: #666; border-top: 1px solid #ccc; padding-top: 10px; }}
+            body {{ font-family: 'Inter', sans-serif; padding: 40px; background: #fff; }}
+            .container {{ 
+                border: 5px solid {cert_color}; 
+                padding: 40px; 
+                border-radius: 15px; 
+                text-align: center; 
+                max-width: 800px;
+                margin: 0 auto;
+            }}
+            .header {{ 
+                background: {cert_color}; 
+                color: white; 
+                padding: 20px; 
+                margin: -40px -40px 30px -40px; 
+                border-radius: 9px 9px 0 0;
+            }}
+            .vendor {{ 
+                font-size: 32px; 
+                font-weight: bold; 
+                text-transform: uppercase; 
+                margin: 20px 0; 
+                color: #111;
+            }}
+            .badge {{ 
+                font-size: 24px; 
+                color: {cert_color}; 
+                font-weight: bold; 
+                border: 3px solid {cert_color}; 
+                padding: 10px 40px; 
+                border-radius: 50px; 
+                display: inline-block; 
+                margin: 15px 0;
+            }}
+            .footer {{ 
+                margin-top: 40px; 
+                font-size: 12px; 
+                color: #666; 
+                border-top: 1px solid #ccc; 
+                padding-top: 20px; 
+            }}
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
+                {logo_html}
                 <h1>{cert_title}</h1>
                 <p>Zolarux Trust Infrastructure</p>
             </div>
-            <p>This certifies that</p>
+            
+            <p style="font-size: 16px; color: #555;">This officially certifies that</p>
+            
             <div class="vendor">{data['vendor_name']}</div>
-            <p>has undergone {MODE.lower()} verification checks.</p>
+            
+            <p style="font-size: 14px; color: #555;">has successfully undergone the <strong>{MODE} VERIFICATION</strong> process.</p>
+            
             <br>
             {score_html}
             <div class="badge">{cert_status}</div>
+            
             {validity_html}
+            
+            {sig_html}
+            
             <div class="footer">
                 <p>Generated on {datetime.now().strftime('%Y-%m-%d')}</p>
-                <p>ID: ZLX-{hash(data['vendor_name']) % 10000:04d}</p>
+                <p>Verification ID: ZLX-{hash(data['vendor_name']) % 10000:04d}</p>
+                <p>Authorized by Zolarux Operations Unit</p>
             </div>
         </div>
     </body>
@@ -545,10 +608,12 @@ elif st.session_state.current_step == 4:
         label="📄 Download Certificate",
         data=html_report,
         file_name=f"zolarux_{MODE.lower()}_cert_{data['vendor_name']}.html",
-        mime="text/html"
+        mime="text/html",
+        key="download_btn"
     )
 
-    if st.button("🔄 Start New"):
+    if st.button("🔄 Start New Assessment"):
         st.session_state.current_step = 1
         st.session_state.vendor_data = {}
         st.rerun()
+
