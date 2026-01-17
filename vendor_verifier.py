@@ -435,40 +435,62 @@ elif st.session_state.current_step == 4:
     
     st.markdown(f'<div class="section-header"><h2>📊 Final Decision: {MODE}</h2></div>', unsafe_allow_html=True)
 
-    # --- RESULTS DASHBOARD ---
-    scorer = res['scorer'] if MODE == "FULL" else None
-    badge = res['badge_info'] if MODE == "FULL" else {'badge': res['badge'], 'color': res['color'], 'status': res['status']}
-    
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        st.markdown(f"""
-        <div class="metric-card" style="background: {badge['color']}">
-            <div class="score-display">{res.get('score', 'PASS') if MODE == 'FULL' else ''}</div>
-            <div style="font-size: 1.5rem;">{badge['badge']}</div>
-            <div>{badge['status']}</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        if MODE == "FULL":
+    # --- INITIAL MODE RESULT VIEW ---
+    if MODE == "INITIAL":
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            st.markdown(f"""
+            <div class="metric-card-initial" style="background: {res['color']}">
+                <div style="font-size: 2rem; font-weight: bold;">{res['badge']}</div>
+                <div style="font-size: 1.2rem; margin-top: 10px;">{res['status']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            if res['passed']:
+                st.success("✅ Vendor has passed the Initial Trust Gate.")
+                st.markdown("**Privileges Unlocked:**")
+                st.markdown("- Can join WhatsApp Vendor Group")
+                st.markdown("- Can post items for sale")
+                st.markdown("- **Expiry:** 30 Days (Must do Full Verification by then)")
+            else:
+                st.error("❌ Verification Failed")
+                st.markdown("**Reasons:**")
+                for issue in res['issues']:
+                    st.write(f"- {issue}")
+
+        with col2:
+            st.metric("Vendor", data['vendor_name'])
+            st.caption(f"Location: {data['vendor_location']}")
+            st.write(f"**Valid Until:** {(datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d')}")
+
+    # --- FULL MODE RESULT VIEW ---
+    else:
+        scorer = res['scorer']
+        badge = res['badge_info']
+        
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            st.markdown(f"""
+            <div class="metric-card" style="background: {badge['color']}">
+                <div class="score-display">{res['score']}/100</div>
+                <div style="font-size: 1.5rem;">{badge['badge']}</div>
+                <div>{badge['status']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
             st.write("**Risk Analysis**")
             if scorer.risk_factors:
                 for risk in scorer.risk_factors:
                     st.write(f"- {risk}")
             else:
                 st.write("No major risks found.")
-        else:
-            st.write("**Initial Check**")
-            if res.get('passed'):
-                st.success("Requirements Met")
-            else:
-                st.error("Requirements Failed")
 
-    # --- CERTIFICATE GENERATION ---
+    # --- CERTIFICATE GENERATION (DYNAMIC) ---
     st.markdown("---")
     st.markdown("### 📥 Download Certificate")
     
-    # 1. Customization
+    # 1. Customization Options (Logo & Signature)
     with st.expander("🎨 Customize Certificate (Logo & Signature)", expanded=True):
         col_c1, col_c2 = st.columns(2)
         with col_c1:
@@ -476,158 +498,123 @@ elif st.session_state.current_step == 4:
         with col_c2:
             uploaded_sig = st.file_uploader("Upload Authorized Signature", type=['png', 'jpg', 'jpeg'], key="cert_sig")
 
-    # --- PDF GENERATOR FUNCTION (FIXED) ---
-    from fpdf import FPDF
-    import tempfile
-    import os  # Added to handle file extensions
-
-    def create_pdf(vendor_data, mode, badge_data, score, logo_file, sig_file):
-        class PDF(FPDF):
-            def header(self):
-                # Header Color Strip
-                self.set_fill_color(int(badge_data['color'][1:3], 16), int(badge_data['color'][3:5], 16), int(badge_data['color'][5:7], 16))
-                self.rect(0, 0, 210, 40, 'F')
-                self.ln(30)
-
-        pdf = PDF()
-        pdf.add_page()
-        
-        # 1. Logo Handling (FIXED: Dynamic Extension)
-        if logo_file:
-            # Get the actual extension (.jpg or .png)
-            file_ext = os.path.splitext(logo_file.name)[1].lower()
-            if file_ext not in ['.jpg', '.jpeg', '.png']:
-                file_ext = '.png' # Fallback
-
-            with tempfile.NamedTemporaryFile(delete=False, suffix=file_ext) as tmp_logo:
-                tmp_logo.write(logo_file.getvalue())
-                try:
-                    pdf.image(tmp_logo.name, x=10, y=8, h=25)
-                except Exception as e:
-                    st.error(f"Logo Error: {e}")
-
-        # 2. Title
-        pdf.set_font('Arial', 'B', 24)
-        pdf.set_text_color(255, 255, 255)
-        title = "PROVISIONAL PASS" if mode == "INITIAL" else "VENDOR CERTIFICATE"
-        pdf.cell(0, -20, title, 0, 1, 'C')
-        
-        pdf.set_font('Arial', '', 10)
-        pdf.cell(0, 30, "Zolarux Trust Infrastructure", 0, 1, 'C')
-        
-        pdf.ln(20) # Spacer
-
-        # 3. Vendor Info
-        pdf.set_text_color(0, 0, 0)
-        pdf.set_font('Arial', '', 12)
-        pdf.cell(0, 10, "This document certifies that", 0, 1, 'C')
-        
-        pdf.set_font('Arial', 'B', 30)
-        # Handle long names by shrinking font if needed
-        name_len = len(vendor_data['vendor_name'])
-        if name_len > 20: pdf.set_font('Arial', 'B', 20)
-        
-        pdf.cell(0, 20, vendor_data['vendor_name'].upper(), 0, 1, 'C')
-        
-        pdf.set_font('Arial', '', 12)
-        pdf.cell(0, 10, f"Category: {vendor_data['vendor_category']}", 0, 1, 'C')
-        
-        pdf.ln(10)
-
-        # 4. Badge/Status
-        pdf.set_fill_color(240, 240, 240)
-        pdf.set_font('Arial', 'B', 16)
-        # Check if score exists (FULL mode)
-        score_text = f"Trust Score: {score}/100" if mode == "FULL" else "Status: VERIFIED"
-        pdf.cell(0, 15, score_text, 0, 1, 'C', True)
-        
-        pdf.set_text_color(int(badge_data['color'][1:3], 16), int(badge_data['color'][3:5], 16), int(badge_data['color'][5:7], 16))
-        pdf.cell(0, 15, badge_data['status'], 0, 1, 'C')
-        
-        pdf.ln(10)
-
-        # 5. Details Table (Simple Text for PDF)
-        pdf.set_text_color(0, 0, 0)
-        pdf.set_font('Arial', 'B', 12)
-        pdf.cell(0, 10, "Verification Details:", 0, 1, 'L')
-        pdf.set_font('Arial', '', 11)
-        
-        # Verification points
-        checks = [
-            f"Phone: {vendor_data['vendor_phone']}",
-            f"Location: {vendor_data['vendor_location']}",
-            f"ID Verified: {'Yes' if vendor_data['has_id_photo'] else 'No'}",
-            f"Stock/Ops Proof: {'Yes' if vendor_data['has_supplier_proof'] or vendor_data['has_operations_proof'] else 'No'}"
-        ]
-        
-        for check in checks:
-            pdf.cell(0, 8, f"- {check}", 0, 1, 'L')
-
-        pdf.ln(10)
-        
-        # 6. Signature Area (FIXED: Dynamic Extension)
-        pdf.set_draw_color(150, 150, 150)
-        pdf.line(60, 250, 150, 250) # Line
-        
-        if sig_file:
-            sig_ext = os.path.splitext(sig_file.name)[1].lower()
-            if sig_ext not in ['.jpg', '.jpeg', '.png']:
-                sig_ext = '.png'
-
-            with tempfile.NamedTemporaryFile(delete=False, suffix=sig_ext) as tmp_sig:
-                tmp_sig.write(sig_file.getvalue())
-                try:
-                    pdf.image(tmp_sig.name, x=85, y=230, h=20)
-                except Exception as e:
-                    st.error(f"Signature Error: {e}")
-                
-        pdf.set_y(255)
-        pdf.set_font('Arial', 'I', 10)
-        pdf.cell(0, 5, "Authorized Verification Officer", 0, 1, 'C')
-        
-        # Footer ID
-        pdf.set_font('Courier', '', 8)
-        pdf.set_text_color(100, 100, 100)
-        cert_id = f"ZLX-{hash(vendor_data['vendor_name']) % 10000:04d}"
-        pdf.cell(0, 10, f"Certificate ID: {cert_id} | Generated: {datetime.now().strftime('%Y-%m-%d')}", 0, 1, 'C')
-
-        return pdf.output(dest='S').encode('latin-1')
-
-    # --- RENDER DOWNLOAD BUTTON ---
-    col_d1, col_d2 = st.columns(2)
+    # Process Images to Base64 for HTML embedding
+    logo_html = ""
+    if uploaded_logo:
+        logo_b64 = base64.b64encode(uploaded_logo.getvalue()).decode()
+        logo_html = f'<img src="data:image/png;base64,{logo_b64}" style="max-height: 60px; margin-bottom: 15px; display: block; margin-left: auto; margin-right: auto;">'
     
-    with col_d1:
-        if st.button("📄 Generate PDF Certificate"):
-            try:
-                pdf_bytes = create_pdf(
-                    data, 
-                    MODE, 
-                    badge, 
-                    res.get('score', 0), 
-                    uploaded_logo, 
-                    uploaded_sig
-                )
-                
-                # Setup download in session state to persist it
-                st.session_state.pdf_bytes = pdf_bytes
-                st.success("PDF Generated! Click download below.")
-            except Exception as e:
-                st.error(f"Error generating PDF: {e}")
-                st.info("Ensure `fpdf` is in your requirements.txt")
+    sig_html = ""
+    if uploaded_sig:
+        sig_b64 = base64.b64encode(uploaded_sig.getvalue()).decode()
+        sig_html = f'<div style="margin-top: 15px; text-align: center;"><img src="data:image/png;base64,{sig_b64}" style="max-height: 50px;"></div>'
 
-    with col_d2:
-        if 'pdf_bytes' in st.session_state:
-            st.download_button(
-                label="⬇️ Download PDF Now",
-                data=st.session_state.pdf_bytes,
-                file_name=f"Zolarux_Cert_{data['vendor_name']}.pdf",
-                mime="application/pdf"
-            )
+    # Logic for Certificate Content
+    cert_title = "PROVISIONAL VENDOR PASS" if MODE == "INITIAL" else "CERTIFIED VENDOR LICENSE"
+    cert_color = res['color'] if MODE == "INITIAL" else res['badge_info']['color']
+    cert_status = res['status'] if MODE == "INITIAL" else res['badge_info']['status']
+    
+    # Hide score for Initial mode
+    score_html = ""
+    if MODE == "FULL":
+        score_html = f'<div class="score-display">{res["score"]}/100</div>'
+    
+    validity_html = ""
+    if MODE == "INITIAL":
+        valid_date = (datetime.now() + timedelta(days=30)).strftime('%B %d, %Y')
+        validity_html = f'<p style="color:red; font-weight:bold; margin-top:10px;">VALID UNTIL: {valid_date}</p>'
+
+    html_report = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+            body {{ font-family: 'Inter', sans-serif; padding: 40px; background: #fff; }}
+            .container {{ 
+                border: 5px solid {cert_color}; 
+                padding: 40px; 
+                border-radius: 15px; 
+                text-align: center; 
+                max-width: 800px;
+                margin: 0 auto;
+            }}
+            .header {{ 
+                background: {cert_color}; 
+                color: white; 
+                padding: 20px; 
+                margin: -40px -40px 30px -40px; 
+                border-radius: 9px 9px 0 0;
+            }}
+            .vendor {{ 
+                font-size: 32px; 
+                font-weight: bold; 
+                text-transform: uppercase; 
+                margin: 20px 0; 
+                color: #111;
+            }}
+            .badge {{ 
+                font-size: 24px; 
+                color: {cert_color}; 
+                font-weight: bold; 
+                border: 3px solid {cert_color}; 
+                padding: 10px 40px; 
+                border-radius: 50px; 
+                display: inline-block; 
+                margin: 15px 0;
+            }}
+            .footer {{ 
+                margin-top: 40px; 
+                font-size: 12px; 
+                color: #666; 
+                border-top: 1px solid #ccc; 
+                padding-top: 20px; 
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                {logo_html}
+                <h1>{cert_title}</h1>
+                <p>Zolarux Trust Infrastructure</p>
+            </div>
+            
+            <p style="font-size: 16px; color: #555;">This officially certifies that</p>
+            
+            <div class="vendor">{data['vendor_name']}</div>
+            
+            <p style="font-size: 14px; color: #555;">has successfully undergone the <strong>{MODE} VERIFICATION</strong> process.</p>
+            
+            <br>
+            {score_html}
+            <div class="badge">{cert_status}</div>
+            
+            {validity_html}
+            
+            {sig_html}
+            
+            <div class="footer">
+                <p>Generated on {datetime.now().strftime('%Y-%m-%d')}</p>
+                <p>Verification ID: ZLX-{hash(data['vendor_name']) % 10000:04d}</p>
+                <p>Authorized by Zolarux Operations Unit</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    st.download_button(
+        label="📄 Download Certificate",
+        data=html_report,
+        file_name=f"zolarux_{MODE.lower()}_cert_{data['vendor_name']}.html",
+        mime="text/html",
+        key="download_btn"
+    )
 
     if st.button("🔄 Start New Assessment"):
         st.session_state.current_step = 1
         st.session_state.vendor_data = {}
-        if 'pdf_bytes' in st.session_state: del st.session_state.pdf_bytes
         st.rerun()
 
 
