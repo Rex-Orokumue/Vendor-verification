@@ -533,13 +533,11 @@ elif st.session_state.current_step == 4:
     logo_html = ""
     if uploaded_logo:
         logo_b64 = base64.b64encode(uploaded_logo.getvalue()).decode()
-        # MODIFIED: Added border-radius: 50% and increased max-height to 80px
         logo_html = f'<img src="data:image/png;base64,{logo_b64}" style="max-height: 80px; border-radius: 50%; margin-bottom: 15px; display: block; margin-left: auto; margin-right: auto;">'
     
     sig_html = ""
     if uploaded_sig:
         sig_b64 = base64.b64encode(uploaded_sig.getvalue()).decode()
-        # MODIFIED: Increased max-height from 50px to 120px
         sig_html = f'<div style="margin-top: 25px; text-align: center;"><img src="data:image/png;base64,{sig_b64}" style="max-height: 120px; width: auto;"></div>'
 
     # Logic for Certificate Content
@@ -547,15 +545,15 @@ elif st.session_state.current_step == 4:
     cert_color = res['color'] if MODE == "INITIAL" else res['badge_info']['color']
     cert_status = res['status'] if MODE == "INITIAL" else res['badge_info']['status']
     
-    # Hide score for Initial mode
-    score_html = ""
-    if MODE == "FULL":
-        score_html = f'<div class="score-display">{res["score"]}/100</div>'
-    
-    validity_html = ""
+    # DYNAMIC TEXT CHANGE HERE
     if MODE == "INITIAL":
-        valid_date = (datetime.now() + timedelta(days=30)).strftime('%B %d, %Y')
-        validity_html = f'<p style="color:red; font-weight:bold; margin-top:10px;">VALID UNTIL: {valid_date}</p>'
+        verification_text = "INITIAL WHATSAPP VERIFICATION"
+        score_html = ""
+        validity_html = f'<p style="color:red; font-weight:bold; margin-top:10px;">VALID UNTIL: {(datetime.now() + timedelta(days=30)).strftime("%B %d, %Y")}</p>'
+    else:
+        verification_text = "COMPREHENSIVE PLATFORM VERIFICATION"
+        score_html = f'<div class="score-display">{res["score"]}/100</div>'
+        validity_html = ""
 
     html_report = f"""
     <!DOCTYPE html>
@@ -596,6 +594,12 @@ elif st.session_state.current_step == 4:
                 display: inline-block; 
                 margin: 15px 0;
             }}
+            .score-display {{
+                font-size: 36px;
+                font-weight: 800;
+                color: {cert_color};
+                margin-bottom: 10px;
+            }}
             .footer {{ 
                 margin-top: 40px; 
                 font-size: 12px; 
@@ -617,7 +621,7 @@ elif st.session_state.current_step == 4:
             
             <div class="vendor">{data['vendor_name']}</div>
             
-            <p style="font-size: 14px; color: #555;">has successfully undergone the <strong>{MODE} WHATSAPP VERIFICATION</strong> process.</p>
+            <p style="font-size: 14px; color: #555;">has successfully undergone the <strong>{verification_text}</strong> process.</p>
             
             <br>
             {score_html}
@@ -649,3 +653,7 @@ elif st.session_state.current_step == 4:
         st.session_state.current_step = 1
         st.session_state.vendor_data = {}
         st.rerun()
+        st.session_state.current_step = 1
+        st.session_state.vendor_data = {}
+        st.rerun()
+
