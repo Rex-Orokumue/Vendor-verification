@@ -551,10 +551,37 @@ elif st.session_state.current_step == 4:
         verification_text = "INITIAL WHATSAPP VERIFICATION"
         score_html = ""
         validity_html = f'<p style="color:red; font-weight:bold; margin-top:10px;">VALID UNTIL: {(datetime.now() + timedelta(days=30)).strftime("%B %d, %Y")}</p>'
+        
+        # Initial Mode Report (Simple issues list if any, usually empty if passed)
+        report_html = ""
+        if not res['passed']:
+             issues_list = "".join([f"<li>{issue}</li>" for issue in res['issues']])
+             report_html = f"<div style='text-align:left; margin-top:20px; color:red;'><strong>Issues Found:</strong><ul>{issues_list}</ul></div>"
+
     else:
         verification_text = "COMPREHENSIVE PLATFORM VERIFICATION"
         score_html = f'<div class="score-display">{res["score"]}/100</div>'
         validity_html = ""
+        
+        # FULL Mode Report (Recs & Risks)
+        recs_list = "".join([f"<li>{rec}</li>" for rec in scorer.recommendations]) if scorer.recommendations else "<li>None</li>"
+        risks_list = "".join([f"<li>{risk}</li>" for risk in scorer.risk_factors]) if scorer.risk_factors else "<li>None</li>"
+        
+        report_html = f"""
+        <div style="text-align: left; margin-top: 30px; font-size: 11px; color: #444; border-top: 1px dashed #ccc; padding-top: 10px;">
+            <p><strong>OFFICIAL ASSESSMENT REPORT</strong></p>
+            <div style="display: flex; gap: 20px;">
+                <div style="flex: 1;">
+                    <p style="color: #059669; font-weight: bold;">💡 Recommendations:</p>
+                    <ul style="margin: 0; padding-left: 15px;">{recs_list}</ul>
+                </div>
+                <div style="flex: 1;">
+                    <p style="color: #dc2626; font-weight: bold;">⚠️ Risk Factors:</p>
+                    <ul style="margin: 0; padding-left: 15px;">{risks_list}</ul>
+                </div>
+            </div>
+        </div>
+        """
 
     html_report = f"""
     <!DOCTYPE html>
@@ -629,6 +656,8 @@ elif st.session_state.current_step == 4:
             <div class="badge">{cert_status}</div>
             
             {validity_html}
+            
+            {report_html}
             
             {sig_html}
             
