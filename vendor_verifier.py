@@ -187,6 +187,7 @@ class VendorScorerV3:
         self.score = auto_score + quality_score + interaction_score
         return self.score
 
+    # --- MISSING METHODS RESTORED ---
     def generate_recommendations(self):
         """Generate actionable recommendations based on missing data or low scores"""
         self.recommendations = []
@@ -444,8 +445,8 @@ elif st.session_state.current_step == 3:
                 st.session_state.final_result = result
             else:
                 final_score = scorer.calculate_total_score()
-                scorer.generate_recommendations()  # THIS IS NOW DEFINED
-                scorer.identify_risk_factors()     # THIS IS NOW DEFINED
+                scorer.generate_recommendations()  # NOW AVAILABLE
+                scorer.identify_risk_factors()     # NOW AVAILABLE
                 badge_info = scorer.get_full_badge()
                 st.session_state.final_result = {
                     'scorer': scorer,
@@ -567,8 +568,8 @@ elif st.session_state.current_step == 4:
                 padding: 40px; 
                 border-radius: 15px; 
                 text-align: center; 
-                max-width: 800px;
-                margin: 0 auto;
+                max-width: 800px; 
+                margin: 0 auto; 
             }}
             .header {{ 
                 background: {cert_color}; 
@@ -653,7 +654,3 @@ elif st.session_state.current_step == 4:
         st.session_state.current_step = 1
         st.session_state.vendor_data = {}
         st.rerun()
-        st.session_state.current_step = 1
-        st.session_state.vendor_data = {}
-        st.rerun()
-
