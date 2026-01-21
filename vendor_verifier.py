@@ -187,6 +187,37 @@ class VendorScorerV3:
         self.score = auto_score + quality_score + interaction_score
         return self.score
 
+    def generate_recommendations(self):
+        """Generate actionable recommendations based on missing data or low scores"""
+        self.recommendations = []
+        
+        if not self.data.get('has_name'): self.recommendations.append("❌ Obtain complete business/individual name")
+        if not self.data.get('has_phone'): self.recommendations.append("📞 Verify phone number")
+        if not self.data.get('has_address'): self.recommendations.append("🏠 Request complete address")
+        if not self.data.get('has_id_photo'): self.recommendations.append("🆔 Require ID photo upload")
+        
+        if self.data.get('guarantor_count', 0) < 2: self.recommendations.append("👥 Request at least 2 guarantor contacts")
+        if self.data.get('registration_type') == 'none': self.recommendations.append("📋 Request business registration (CAC/SMEDAN)")
+        
+        if not self.data.get('has_supplier_proof'): self.recommendations.append("📄 Obtain supplier documentation")
+        if not self.data.get('has_operations_proof'): self.recommendations.append("🏭 Request proof of business operations")
+        
+        if self.data.get('testimonial_quality') in ['suspicious', 'mixed']: self.recommendations.append("⭐ Verify customer testimonials authenticity")
+        if self.data.get('responsiveness_rating', 5) < 3: self.recommendations.append("⏰ Address slow response time concerns")
+        if self.data.get('communication_quality') == 'unprofessional': self.recommendations.append("💬 Provide communication guidelines")
+
+    def identify_risk_factors(self):
+        """Identify specific risk factors based on inputs"""
+        self.risk_factors = []
+        
+        if self.data.get('red_flags_count', 0) > 0: self.risk_factors.append(f"🚩 {self.data.get('red_flags_count')} red flags identified")
+        if self.data.get('testimonial_quality') == 'suspicious': self.risk_factors.append("⚠️ Suspicious testimonials detected")
+        if self.data.get('communication_quality') == 'unprofessional': self.risk_factors.append("💬 Unprofessional communication style")
+        if self.data.get('responsiveness_rating', 5) == 1: self.risk_factors.append("⏰ Very poor responsiveness")
+        if not self.data.get('has_id_photo'): self.risk_factors.append("🆔 No ID verification completed")
+        if self.data.get('registration_type') == 'none': self.risk_factors.append("🏢 No business registration on file")
+        if self.data.get('id_quality') == 'poor': self.risk_factors.append("📸 Poor quality ID documentation")
+
     def get_full_badge(self):
         if self.score >= 80:
             return {'badge': '🟢 Green (Verified)', 'status': 'APPROVED', 'description': 'Low risk. Eligible for Loans.', 'color': '#10b981'}
@@ -413,8 +444,8 @@ elif st.session_state.current_step == 3:
                 st.session_state.final_result = result
             else:
                 final_score = scorer.calculate_total_score()
-                scorer.generate_recommendations()
-                scorer.identify_risk_factors()
+                scorer.generate_recommendations()  # THIS IS NOW DEFINED
+                scorer.identify_risk_factors()     # THIS IS NOW DEFINED
                 badge_info = scorer.get_full_badge()
                 st.session_state.final_result = {
                     'scorer': scorer,
@@ -509,7 +540,7 @@ elif st.session_state.current_step == 4:
     if uploaded_sig:
         sig_b64 = base64.b64encode(uploaded_sig.getvalue()).decode()
         # MODIFIED: Increased max-height from 50px to 120px
-        sig_html = f'<div style="margin-top: 25px; text-align: center;"><img src="data:image/png;base64,{sig_b64}" style="max-height: 160px; width: auto;"></div>'
+        sig_html = f'<div style="margin-top: 25px; text-align: center;"><img src="data:image/png;base64,{sig_b64}" style="max-height: 120px; width: auto;"></div>'
 
     # Logic for Certificate Content
     cert_title = "PROVISIONAL VENDOR PASS" if MODE == "INITIAL" else "CERTIFIED VENDOR LICENSE"
@@ -618,5 +649,3 @@ elif st.session_state.current_step == 4:
         st.session_state.current_step = 1
         st.session_state.vendor_data = {}
         st.rerun()
-
-
