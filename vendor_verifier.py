@@ -552,10 +552,12 @@ elif st.session_state.current_step == 4:
         score_html = ""
         validity_html = f'<p style="color:red; font-weight:bold; margin-top:10px;">VALID UNTIL: {(datetime.now() + timedelta(days=30)).strftime("%B %d, %Y")}</p>'
         
-        # Initial Mode Report (Simple issues list if any, usually empty if passed)
+        # Initial Mode Report (Simple issues list)
         report_html = ""
         if not res['passed']:
-             issues_list = "".join([f"<li>{issue}</li>" for issue in res['issues']])
+             # Strip emojis for mobile compatibility
+             clean_issues = [issue.replace("❌", "").replace("🚩", "").strip() for issue in res['issues']]
+             issues_list = "".join([f"<li>{issue}</li>" for issue in clean_issues])
              report_html = f"<div style='text-align:left; margin-top:20px; color:red;'><strong>Issues Found:</strong><ul>{issues_list}</ul></div>"
 
     else:
@@ -563,20 +565,29 @@ elif st.session_state.current_step == 4:
         score_html = f'<div class="score-display">{res["score"]}/100</div>'
         validity_html = ""
         
-        # FULL Mode Report (Recs & Risks)
-        recs_list = "".join([f"<li>{rec}</li>" for rec in scorer.recommendations]) if scorer.recommendations else "<li>None</li>"
-        risks_list = "".join([f"<li>{risk}</li>" for risk in scorer.risk_factors]) if scorer.risk_factors else "<li>None</li>"
+        # FULL Mode Report (Recs & Risks) - Stripping emojis for safety
+        if scorer.recommendations:
+            clean_recs = [rec.encode('ascii', 'ignore').decode('ascii').strip() for rec in scorer.recommendations]
+            recs_list = "".join([f"<li>{rec}</li>" for rec in clean_recs])
+        else:
+            recs_list = "<li>None</li>"
+
+        if scorer.risk_factors:
+            clean_risks = [risk.encode('ascii', 'ignore').decode('ascii').strip() for risk in scorer.risk_factors]
+            risks_list = "".join([f"<li>{risk}</li>" for risk in clean_risks])
+        else:
+            risks_list = "<li>None</li>"
         
         report_html = f"""
         <div style="text-align: left; margin-top: 30px; font-size: 11px; color: #444; border-top: 1px dashed #ccc; padding-top: 10px;">
             <p><strong>OFFICIAL ASSESSMENT REPORT</strong></p>
             <div style="display: flex; gap: 20px;">
                 <div style="flex: 1;">
-                    <p style="color: #059669; font-weight: bold;">💡 Recommendations:</p>
+                    <p style="color: #059669; font-weight: bold;">RECOMMENDATIONS:</p>
                     <ul style="margin: 0; padding-left: 15px;">{recs_list}</ul>
                 </div>
                 <div style="flex: 1;">
-                    <p style="color: #dc2626; font-weight: bold;">⚠️ Risk Factors:</p>
+                    <p style="color: #dc2626; font-weight: bold;">RISK FACTORS:</p>
                     <ul style="margin: 0; padding-left: 15px;">{risks_list}</ul>
                 </div>
             </div>
@@ -585,11 +596,13 @@ elif st.session_state.current_step == 4:
 
     html_report = f"""
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
     <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-            body {{ font-family: 'Inter', sans-serif; padding: 40px; background: #fff; }}
+            body {{ font-family: 'Inter', sans-serif; padding: 40px; background: #fff; -webkit-print-color-adjust: exact; }}
             .container {{ 
                 border: 5px solid {cert_color}; 
                 padding: 40px; 
@@ -683,3 +696,4 @@ elif st.session_state.current_step == 4:
         st.session_state.current_step = 1
         st.session_state.vendor_data = {}
         st.rerun()
+
