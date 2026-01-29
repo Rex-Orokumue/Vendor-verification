@@ -194,7 +194,7 @@ class VendorScorerV3:
             
         if self.score >= 80:
             self.recommendations.append("Approve for immediate onboarding")
-            self.recommendations.append("Eligible for loan facilities")
+            self.recommendations.append("Eligible for future loan facilities")
         elif self.score >= 60:
             self.recommendations.append("Approve with monitoring")
             self.recommendations.append("Review after first 3 transactions")
@@ -211,7 +211,7 @@ class VendorScorerV3:
             self.risk_factors.append("Multiple red flags detected")
         if self.data.get('registration_type') == 'none':
             self.risk_factors.append("No business registration")
-        if not self.data.get('has_guarantor_count', 0):
+        if not self.data.get('guarantor_count', 0):
             self.risk_factors.append("No guarantors provided")
 
     def get_full_badge(self):
@@ -690,4 +690,5 @@ elif st.session_state.current_step == 4:
         st.session_state.current_step = 1
         st.session_state.vendor_data = {}
         st.rerun()
+
 
