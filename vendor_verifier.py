@@ -65,20 +65,20 @@ with st.sidebar:
     # The Mode Switch
     verification_mode_selection = st.radio(
         "Verification Mode",
-        options=["INITIAL (WhatsApp)", "FULL (Platform)"],
+        options=["STANDARD (Initial)", "PREMIUM (Full)"],
         index=0,
-        help="INITIAL: Fast check for WhatsApp access. FULL: Detailed scoring for loans & platform benefits."
+        help="STANDARD: Quick verification for marketplace access. PREMIUM: Comprehensive scoring for loans & premium benefits."
     )
     
     # Store mode in simple variable for logic checks
-    MODE = "INITIAL" if "INITIAL" in verification_mode_selection else "FULL"
+    MODE = "INITIAL" if "STANDARD" in verification_mode_selection else "FULL"
     st.session_state.verification_mode = MODE
     
     st.info(f"Currently running: **{MODE} VERIFICATION**")
     if MODE == "INITIAL":
-        st.caption("✅ Fast Track\n✅ Pass/Fail Only\n✅ 30-Day Validity")
+        st.caption("✅ Standard Verification\n✅ Pass/Fail Only\n✅ Full Access After 3 Transactions")
     else:
-        st.caption("🛡️ Deep Dive\n🛡️ 100-Point Score\n🛡️ Long-term Trust")
+        st.caption("🛡️ Premium Tier\n🛡️ 100-Point Score\n🛡️ Loan Eligibility")
 
 # Scoring & Logic Class
 class VendorScorerV3:
@@ -117,9 +117,9 @@ class VendorScorerV3:
         return {
             'passed': passed,
             'issues': checks,
-            'badge': '🔵 WhatsApp Verified' if passed else '🔴 Verification Failed',
-            'status': 'PROVISIONALLY VERIFIED' if passed else 'FAILED',
-            'description': 'Valid for 30 Days. Subject to Full Verification.',
+            'badge': '🔵 Standard Verified' if passed else '🔴 Verification Failed',
+            'status': 'VERIFIED - STANDARD TIER' if passed else 'FAILED',
+            'description': 'Eligible for Full Verification after 3 successful transactions.',
             'color': '#2563eb' if passed else '#ef4444'
         }
 
@@ -187,37 +187,32 @@ class VendorScorerV3:
         self.score = auto_score + quality_score + interaction_score
         return self.score
 
-    # --- MISSING METHODS RESTORED ---
     def generate_recommendations(self):
-        """Generate actionable recommendations based on missing data or low scores"""
-        self.recommendations = []
-        
-        if not self.data.get('has_name'): self.recommendations.append("❌ Obtain complete business/individual name")
-        if not self.data.get('has_phone'): self.recommendations.append("📞 Verify phone number")
-        if not self.data.get('has_address'): self.recommendations.append("🏠 Request complete address")
-        if not self.data.get('has_id_photo'): self.recommendations.append("🆔 Require ID photo upload")
-        
-        if self.data.get('guarantor_count', 0) < 2: self.recommendations.append("👥 Request at least 2 guarantor contacts")
-        if self.data.get('registration_type') == 'none': self.recommendations.append("📋 Request business registration (CAC/SMEDAN)")
-        
-        if not self.data.get('has_supplier_proof'): self.recommendations.append("📄 Obtain supplier documentation")
-        if not self.data.get('has_operations_proof'): self.recommendations.append("🏭 Request proof of business operations")
-        
-        if self.data.get('testimonial_quality') in ['suspicious', 'mixed']: self.recommendations.append("⭐ Verify customer testimonials authenticity")
-        if self.data.get('responsiveness_rating', 5) < 3: self.recommendations.append("⏰ Address slow response time concerns")
-        if self.data.get('communication_quality') == 'unprofessional': self.recommendations.append("💬 Provide communication guidelines")
+        """Generate recommendations for Full mode"""
+        if self.mode != "FULL":
+            return
+            
+        if self.score >= 80:
+            self.recommendations.append("Approve for immediate onboarding")
+            self.recommendations.append("Eligible for loan facilities")
+        elif self.score >= 60:
+            self.recommendations.append("Approve with monitoring")
+            self.recommendations.append("Review after first 3 transactions")
+        else:
+            self.recommendations.append("Reject application")
+            self.recommendations.append("Request additional documentation if reapplying")
 
     def identify_risk_factors(self):
-        """Identify specific risk factors based on inputs"""
-        self.risk_factors = []
-        
-        if self.data.get('red_flags_count', 0) > 0: self.risk_factors.append(f"🚩 {self.data.get('red_flags_count')} red flags identified")
-        if self.data.get('testimonial_quality') == 'suspicious': self.risk_factors.append("⚠️ Suspicious testimonials detected")
-        if self.data.get('communication_quality') == 'unprofessional': self.risk_factors.append("💬 Unprofessional communication style")
-        if self.data.get('responsiveness_rating', 5) == 1: self.risk_factors.append("⏰ Very poor responsiveness")
-        if not self.data.get('has_id_photo'): self.risk_factors.append("🆔 No ID verification completed")
-        if self.data.get('registration_type') == 'none': self.risk_factors.append("🏢 No business registration on file")
-        if self.data.get('id_quality') == 'poor': self.risk_factors.append("📸 Poor quality ID documentation")
+        """Identify risk factors for Full mode"""
+        if self.mode != "FULL":
+            return
+            
+        if self.data.get('red_flags_count', 0) > 2:
+            self.risk_factors.append("Multiple red flags detected")
+        if self.data.get('registration_type') == 'none':
+            self.risk_factors.append("No business registration")
+        if not self.data.get('has_guarantor_count', 0):
+            self.risk_factors.append("No guarantors provided")
 
     def get_full_badge(self):
         if self.score >= 80:
@@ -230,9 +225,9 @@ class VendorScorerV3:
 # Header
 st.title("🛡️ Zolarux Verification")
 if MODE == "INITIAL":
-    st.markdown("### 🔵 Mode: Initial WhatsApp Verification (Fast-Track)")
+    st.markdown("### 🔵 Mode: Standard Verification (Marketplace Access)")
 else:
-    st.markdown("### 🟢 Mode: Full Platform Verification (Deep-Dive)")
+    st.markdown("### 🟢 Mode: Premium Verification (Loan Eligibility)")
 
 # Progress indicator
 col1, col2, col3 = st.columns(3)
@@ -348,7 +343,7 @@ elif st.session_state.current_step == 2:
     st.markdown('<div class="section-header"><h2>🔍 Step 2: Quality Review</h2></div>', unsafe_allow_html=True)
     
     if MODE == "INITIAL":
-        st.info("ℹ️ **INITIAL MODE:** Simplified review. Ensure documents look legitimate. No granular scoring.")
+        st.info("ℹ️ **STANDARD MODE:** Simplified review. Ensure documents look legitimate. No granular scoring.")
         col1, col2 = st.columns(2)
         with col1:
             st.write("**ID Card Status:**")
@@ -369,7 +364,7 @@ elif st.session_state.current_step == 2:
 
     else:
         # FULL MODE SLIDERS
-        st.info("📌 **FULL MODE:** Detailed quality scoring for credit worthiness.")
+        st.info("📌 **PREMIUM MODE:** Detailed quality scoring for credit worthiness.")
         col1, col2 = st.columns(2)
         with col1:
             id_q = st.select_slider("ID Quality", ['poor', 'acceptable', 'excellent'], value='acceptable', key="id_q")
@@ -445,8 +440,8 @@ elif st.session_state.current_step == 3:
                 st.session_state.final_result = result
             else:
                 final_score = scorer.calculate_total_score()
-                scorer.generate_recommendations()  # NOW AVAILABLE
-                scorer.identify_risk_factors()     # NOW AVAILABLE
+                scorer.generate_recommendations()
+                scorer.identify_risk_factors()
                 badge_info = scorer.get_full_badge()
                 st.session_state.final_result = {
                     'scorer': scorer,
@@ -467,105 +462,38 @@ elif st.session_state.current_step == 4:
     
     st.markdown(f'<div class="section-header"><h2>📊 Final Decision: {MODE}</h2></div>', unsafe_allow_html=True)
 
-    # --- INITIAL MODE RESULT VIEW ---
+    # ----------------------------------------
+    # 1. DEFINE CERTIFICATE TEXT VARIABLES
+    # ----------------------------------------
     if MODE == "INITIAL":
-        col1, col2 = st.columns([2, 1])
-        with col1:
-            st.markdown(f"""
-            <div class="metric-card-initial" style="background: {res['color']}">
-                <div style="font-size: 2rem; font-weight: bold;">{res['badge']}</div>
-                <div style="font-size: 1.2rem; margin-top: 10px;">{res['status']}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            if res['passed']:
-                st.success("✅ Vendor has passed the Initial Trust Gate.")
-                st.markdown("**Privileges Unlocked:**")
-                st.markdown("- Can join WhatsApp Vendor Group")
-                st.markdown("- Can post items for sale")
-                st.markdown("- **Expiry:** 30 Days (Must do Full Verification by then)")
-            else:
-                st.error("❌ Verification Failed")
-                st.markdown("**Reasons:**")
-                for issue in res['issues']:
-                    st.write(f"- {issue}")
-
-        with col2:
-            st.metric("Vendor", data['vendor_name'])
-            st.caption(f"Location: {data['vendor_location']}")
-            st.write(f"**Valid Until:** {(datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d')}")
-
-    # --- FULL MODE RESULT VIEW ---
-    else:
-        scorer = res['scorer']
-        badge = res['badge_info']
+        # INITIAL MODE TEXT
+        cert_title = "STANDARD VENDOR CERTIFICATE"
+        verification_text = "STANDARD MARKETPLACE VERIFICATION"
         
-        col1, col2 = st.columns([2, 1])
-        with col1:
-            st.markdown(f"""
-            <div class="metric-card" style="background: {badge['color']}">
-                <div class="score-display">{res['score']}/100</div>
-                <div style="font-size: 1.5rem;">{badge['badge']}</div>
-                <div>{badge['status']}</div>
-            </div>
-            """, unsafe_allow_html=True)
+        # New Validity Text (Milestone based, not Date based)
+        validity_html = '<p style="color:#333; font-weight:bold; margin-top:15px; font-size:12px; letter-spacing: 0.5px;">ELIGIBLE FOR PREMIUM VERIFICATION AFTER 3 SUCCESSFUL TRANSACTIONS</p>'
         
-        with col2:
-            st.write("**Risk Analysis**")
-            if scorer.risk_factors:
-                for risk in scorer.risk_factors:
-                    st.write(f"- {risk}")
-            else:
-                st.write("No major risks found.")
-
-    # --- CERTIFICATE GENERATION (DYNAMIC) ---
-    st.markdown("---")
-    st.markdown("### 📥 Download Certificate")
-    
-    # 1. Customization Options (Logo & Signature)
-    with st.expander("🎨 Customize Certificate (Logo & Signature)", expanded=True):
-        col_c1, col_c2 = st.columns(2)
-        with col_c1:
-            uploaded_logo = st.file_uploader("Upload Company Logo", type=['png', 'jpg', 'jpeg'], key="cert_logo")
-        with col_c2:
-            uploaded_sig = st.file_uploader("Upload Authorized Signature", type=['png', 'jpg', 'jpeg'], key="cert_sig")
-
-    # Process Images to Base64 for HTML embedding
-    logo_html = ""
-    if uploaded_logo:
-        logo_b64 = base64.b64encode(uploaded_logo.getvalue()).decode()
-        logo_html = f'<img src="data:image/png;base64,{logo_b64}" style="max-height: 80px; border-radius: 50%; margin-bottom: 15px; display: block; margin-left: auto; margin-right: auto;">'
-    
-    sig_html = ""
-    if uploaded_sig:
-        sig_b64 = base64.b64encode(uploaded_sig.getvalue()).decode()
-        sig_html = f'<div style="margin-top: 25px; text-align: center;"><img src="data:image/png;base64,{sig_b64}" style="max-height: 120px; width: auto;"></div>'
-
-    # Logic for Certificate Content
-    cert_title = "PROVISIONAL VENDOR PASS" if MODE == "INITIAL" else "CERTIFIED VENDOR LICENSE"
-    cert_color = res['color'] if MODE == "INITIAL" else res['badge_info']['color']
-    cert_status = res['status'] if MODE == "INITIAL" else res['badge_info']['status']
-    
-    # DYNAMIC TEXT CHANGE HERE
-    if MODE == "INITIAL":
-        verification_text = "INITIAL WHATSAPP VERIFICATION"
-        score_html = ""
-        validity_html = f'<p style="color:red; font-weight:bold; margin-top:10px;">VALID UNTIL: {(datetime.now() + timedelta(days=30)).strftime("%B %d, %Y")}</p>'
+        score_html = "" # No score shown
         
-        # Initial Mode Report (Simple issues list)
-        report_html = ""
+        # Clean up issues list for mobile (remove emojis)
         if not res['passed']:
-             # Strip emojis for mobile compatibility
              clean_issues = [issue.replace("❌", "").replace("🚩", "").strip() for issue in res['issues']]
              issues_list = "".join([f"<li>{issue}</li>" for issue in clean_issues])
              report_html = f"<div style='text-align:left; margin-top:20px; color:red;'><strong>Issues Found:</strong><ul>{issues_list}</ul></div>"
+        else:
+             report_html = ""
 
     else:
-        verification_text = "COMPREHENSIVE PLATFORM VERIFICATION"
-        score_html = f'<div class="score-display">{res["score"]}/100</div>'
-        validity_html = ""
+        # FULL MODE TEXT
+        cert_title = "PREMIUM VENDOR LICENSE"
+        verification_text = "COMPREHENSIVE PREMIUM VERIFICATION"
         
-        # FULL Mode Report (Recs & Risks) - Stripping emojis for safety
+        validity_html = "" # No text here for full mode
+        
+        score_html = f'<div class="score-display">{res["score"]}/100</div>'
+        
+        # Recommendations & Risk Factors (Cleaned for mobile)
+        scorer = res['scorer']
         if scorer.recommendations:
             clean_recs = [rec.encode('ascii', 'ignore').decode('ascii').strip() for rec in scorer.recommendations]
             recs_list = "".join([f"<li>{rec}</li>" for rec in clean_recs])
@@ -594,12 +522,78 @@ elif st.session_state.current_step == 4:
         </div>
         """
 
+    # ----------------------------------------
+    # 2. DASHBOARD DISPLAY
+    # ----------------------------------------
+    badge = res if MODE == "INITIAL" else res['badge_info']
+    
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        st.markdown(f"""
+        <div class="metric-card-initial" style="background: {badge['color']}">
+            <div style="font-size: 2rem; font-weight: bold;">{badge['badge']}</div>
+            <div style="font-size: 1.2rem; margin-top: 10px;">{badge['status']}</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if MODE == "INITIAL":
+            if res['passed']:
+                st.success("✅ Vendor has passed Standard Verification.")
+                st.markdown("**Privileges Unlocked:**")
+                st.markdown("- ✅ Can join WhatsApp Vendor Group")
+                st.markdown("- ✅ Can post items for sale on marketplace")
+                st.markdown("- ✅ Escrow protection enabled")
+                st.markdown("---")
+                st.info("**🎯 Next Milestone:** Complete **3 successful transactions** to unlock Premium Verification (loan eligibility)")
+            else:
+                st.error("❌ Verification Failed")
+                st.markdown("**Reasons:**")
+                for issue in res['issues']:
+                    st.write(f"- {issue}")
+        else:
+            # Full Mode extra display
+            pass 
+
+    with col2:
+        st.metric("Vendor", data['vendor_name'])
+        st.caption(f"Location: {data['vendor_location']}")
+        if MODE == "INITIAL":
+            st.write("**Tier:** Standard")
+        else:
+            st.write("**Tier:** Premium")
+
+    # ----------------------------------------
+    # 3. CERTIFICATE GENERATION
+    # ----------------------------------------
+    st.markdown("---")
+    st.markdown("### 📥 Download Certificate")
+    
+    with st.expander("🎨 Customize Certificate (Logo & Signature)", expanded=True):
+        col_c1, col_c2 = st.columns(2)
+        with col_c1:
+            uploaded_logo = st.file_uploader("Upload Company Logo", type=['png', 'jpg', 'jpeg'], key="cert_logo")
+        with col_c2:
+            uploaded_sig = st.file_uploader("Upload Authorized Signature", type=['png', 'jpg', 'jpeg'], key="cert_sig")
+
+    # Process Images
+    logo_html = ""
+    if uploaded_logo:
+        logo_b64 = base64.b64encode(uploaded_logo.getvalue()).decode()
+        logo_html = f'<img src="data:image/png;base64,{logo_b64}" style="max-height: 80px; border-radius: 50%; margin-bottom: 15px; display: block; margin-left: auto; margin-right: auto;">'
+    
+    sig_html = ""
+    if uploaded_sig:
+        sig_b64 = base64.b64encode(uploaded_sig.getvalue()).decode()
+        sig_html = f'<div style="margin-top: 25px; text-align: center;"><img src="data:image/png;base64,{sig_b64}" style="max-height: 120px; width: auto;"></div>'
+
+    cert_color = badge['color']
+    cert_status = badge['status']
+
     html_report = f"""
     <!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
             body {{ font-family: 'Inter', sans-serif; padding: 40px; background: #fff; -webkit-print-color-adjust: exact; }}
@@ -696,4 +690,3 @@ elif st.session_state.current_step == 4:
         st.session_state.current_step = 1
         st.session_state.vendor_data = {}
         st.rerun()
-
