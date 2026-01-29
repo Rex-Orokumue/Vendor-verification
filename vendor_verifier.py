@@ -544,7 +544,7 @@ elif st.session_state.current_step == 4:
                 st.markdown("- ✅ Can post items for sale on marketplace")
                 st.markdown("- ✅ Escrow protection enabled")
                 st.markdown("---")
-                st.info("**🎯 Next Milestone:** Complete **3 successful transactions** to unlock Premium Verification (loan eligibility)")
+                st.info("**🎯 Next Milestone:** Complete **3 successful transactions** to unlock Premium Verification")
             else:
                 st.error("❌ Verification Failed")
                 st.markdown("**Reasons:**")
@@ -690,3 +690,4 @@ elif st.session_state.current_step == 4:
         st.session_state.current_step = 1
         st.session_state.vendor_data = {}
         st.rerun()
+
